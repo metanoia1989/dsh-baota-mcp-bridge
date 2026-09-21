@@ -24,7 +24,7 @@
  * 协议流：stdin/stdout 走 JSON-RPC，日志一律走 stderr。
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import https from 'node:https';
@@ -35,8 +35,21 @@ const log = (...a) => { if (DEBUG) console.error('[baota-bridge]', ...a); };
 const fail = (msg) => { console.error('[baota-bridge] FATAL:', msg); process.exit(1); };
 
 // ── 解析 DSH 自带的 MCP SDK（不新增依赖） ─────────────────────────────
-const DSH_MODULES = process.env.BAOTA_DSH_MODULES
-  || '/path/to/dsh/node_modules';
+function findDshModules() {
+  const cands = [
+    process.env.BAOTA_DSH_MODULES,
+    // 与 node 同级的全局 node_modules（nvm / homebrew / 系统）
+    join(dirname(process.execPath), '..', 'lib', 'node_modules', '@deepseek-ai', 'dsh', 'node_modules'),
+    join(dirname(process.execPath), '..', '..', 'lib', 'node_modules', '@deepseek-ai', 'dsh', 'node_modules'),
+    '/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules',
+    '/opt/homebrew/lib/node_modules/@deepseek-ai/dsh/node_modules',
+  ].filter(Boolean);
+  for (const c of cands) {
+    try { if (existsSync(join(c, '@modelcontextprotocol', 'sdk'))) return c } catch { /* 试下一个 */ }
+  }
+  return cands[0] || '/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules';
+}
+const DSH_MODULES = findDshModules();
 const sdk = (sub) => pathToFileURL(join(DSH_MODULES, '@modelcontextprotocol/sdk/dist/esm', sub)).href;
 
 let Client, StdioServerTransport, StreamableHTTPClientTransport, types;
