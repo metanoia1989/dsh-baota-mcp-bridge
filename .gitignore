@@ -1,0 +1,20 @@
+# 凭证 —— 绝不要提交
+mcp_info.json
+**/mcp_info.json
+*.token
+.env
+.env.*
+
+# 配置备份
+*.bak
+*.bak-*
+cordis.patch.yml.bak*
+
+# 运行时
+*.log
+node_modules/
+.DS_Store
+
+# CA 证书从你自己的 mcp_info.json 现场提取，不随仓库分发
+src/baota_root_ca.crt
+src/*.crt
